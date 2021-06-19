@@ -4,7 +4,9 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.log4j.Logger;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -58,7 +60,14 @@ public class WxDictAspect {
 
         long start=System.currentTimeMillis();
 //        JsonArray jsonarr = new JsonArray();
-        JSONArray jsonarr = new JSONArray();
+        // finally result
+        JSONObject jsonRes = new JSONObject();
+        // fixed original data set
+        JSONArray contentHolder = new JSONArray();
+        // dictionary result
+        JSONObject dictRes = new JSONObject();
+        
+        Set<String> keyDict = new HashSet<String>();
         
         // data process logic
         if (result instanceof Result) {
@@ -86,16 +95,24 @@ public class WxDictAspect {
         						String dictGroupCode = an.dictGroupCode();
         						String codeVal = getFieldValueByName(field.getName(), obj);
         						String text = enhancerService.simpleSelect(dictGroupCode, codeVal);
-        						List<DictVo> selOpt = enhancerService.selectionSel(dictGroupCode);
         						jsonObject.put(field.getName()+DICT_SUFFIX_TXT, text);
-        						jsonObject.put(field.getName()+DICT_SUFFIX_SELOP, selOpt);
+        						
+        						// remove duplicate select options
+        						if (keyDict.add(field.getName()+DICT_SUFFIX_SELOP)) {
+        							List<DictVo> selOpt = enhancerService.selectionSel(dictGroupCode);
+        							dictRes.put(field.getName()+DICT_SUFFIX_SELOP, selOpt);
+        						}
 //        						jsonObject.add(field.getName()+DICT_SUFFIX_TXT, new Gson().toJsonTree(text));
 //        						jsonObject.add(field.getName()+DICT_SUFFIX_SELOP, new Gson().toJsonTree(selOpt));
         					}        					
         				}
         				
-        				jsonarr.add(jsonObject);
+        				contentHolder.add(jsonObject);
         			}
+        			
+        			jsonRes.put("list", contentHolder);
+        			jsonRes.put("dict", dictRes);
+        			res.setData(jsonRes.toString());
         		} else {
         			// status code is 200
         			// list size is nil
@@ -114,7 +131,6 @@ public class WxDictAspect {
         	}
         	long end=System.currentTimeMillis();
             logger.debug("字典数据处理耗时"+(end-start)+"ms");
-            res.setData(jsonarr.toString());
         } else {
         	// not Result return type
         	// principally will not occur
