@@ -16,13 +16,14 @@ import org.aspectj.lang.annotation.Pointcut;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
 import com.jeecg.devicemanage.wx.enhance.anno.UniAppDict;
 import com.jeecg.devicemanage.wx.enhance.service.EnhancerService;
 import com.jeecg.devicemanage.wx.enhance.vo.DictVo;
 import com.jeecg.devicemanage.wx.enhance.vo.Result;
 
-import net.sf.json.JSONArray;
-import net.sf.json.JSONObject;
 
 /**
  * in wechat select data case:
@@ -88,7 +89,7 @@ public class WxDictAspect {
         				// convert obj to jsonObject
 //        				String tempJson = new Gson().toJson(obj);// 获取json字符串.
 //        				JsonObject jsonObject = new JsonParser().parse(tempJson).getAsJsonObject();// 获取json对象
-        				JSONObject jsonObject = JSONObject.fromObject(obj);
+        				JSONObject jsonObject = JSON.parseObject(JSON.toJSONString(obj));
         				for (Field field : fds) {
         					UniAppDict an = field.getAnnotation(UniAppDict.class); 
         					if (null != an) {
@@ -112,7 +113,7 @@ public class WxDictAspect {
         			
         			jsonRes.put("list", contentHolder);
         			jsonRes.put("dict", dictRes);
-        			res.setData(jsonRes.toString());
+        			res.setData(jsonRes);
         		} else {
         			// status code is 200
         			// list size is nil

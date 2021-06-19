@@ -3,7 +3,9 @@ package com.jeecg.devicemanage.wx.enhance.vo;
 import java.io.Serializable;
 import java.util.List;
 
+import com.alibaba.fastjson.JSONObject;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+
 
 /**
  *  接口返回数据格式
@@ -11,7 +13,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
  * @email jeecgos@163.com
  * @date  2019年1月19日
  */
-public class Result<T> implements Serializable {
+public class Result<T> {
 
 	private static final long serialVersionUID = 1L;
 
@@ -35,13 +37,13 @@ public class Result<T> implements Serializable {
 	 */
 	private List<T> result;
 	
-	private String data;
+	private JSONObject data;
 	
-	public String getData() {
+	public JSONObject getData() {
 		return data;
 	}
 
-	public void setData(String data) {
+	public void setData(JSONObject data) {
 		this.data = data;
 	}
 
