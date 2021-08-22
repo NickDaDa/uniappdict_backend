@@ -13,7 +13,11 @@ import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Pointcut;
+import org.jeecgframework.p3.core.utils.common.StringUtils;
+import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
 
 import com.alibaba.fastjson.JSON;
@@ -36,7 +40,7 @@ import com.jeecg.devicemanage.wx.enhance.vo.Result;
  */
 @Aspect
 @Component
-public class WxDictAspect {
+public class WxDictAspect implements ApplicationContextAware{
 	
 	/**
 	 * Logger for this class
@@ -45,6 +49,8 @@ public class WxDictAspect {
 	
 	private static final String DICT_SUFFIX_TXT = "_dictTxt";
 	private static final String DICT_SUFFIX_SELOP = "_dictGroup";
+	
+	private ApplicationContext context;
 	
 	@Autowired
 	private EnhancerService enhancerService;
@@ -83,6 +89,10 @@ public class WxDictAspect {
         		if (list.size() > 0) {
         			for (Object obj : list) {
         				
+        				// if list's each obj is a string instance skip translation, return current object directly
+        				if (obj instanceof String) {
+        					break;
+        				}
         				// extract all fields
         				Field[] fds = getAllFields(obj);
         				
@@ -93,18 +103,39 @@ public class WxDictAspect {
         				for (Field field : fds) {
         					UniAppDict an = field.getAnnotation(UniAppDict.class); 
         					if (null != an) {
-        						String dictGroupCode = an.dictGroupCode();
-        						String codeVal = getFieldValueByName(field.getName(), obj);
-        						String text = enhancerService.simpleSelect(dictGroupCode, codeVal);
-        						jsonObject.put(field.getName()+DICT_SUFFIX_TXT, text);
-        						
-        						// remove duplicate select options
-        						if (keyDict.add(field.getName()+DICT_SUFFIX_SELOP)) {
-        							List<DictVo> selOpt = enhancerService.selectionSel(dictGroupCode);
-        							dictRes.put(field.getName()+DICT_SUFFIX_SELOP, selOpt);
-        						}
+        						String dictService = an.dictService();
+        						String dictServiceFunc = an.dictServiceFunc();
+        						// invoke specified service, privileged
+        						if (StringUtils.isNotEmpty(dictService) && StringUtils.isNotEmpty(dictServiceFunc)) {
+        							Object bean = context.getBean(dictService);
+        							if (null != bean) {
+        								// object filed names, sequentially assembled as a array
+        								// use each value as service input parameter
+        								String[] vars = an.vars();
+        								List<String> inputVar = new ArrayList<>();
+        								for (String varItem : vars) {
+        									String codeVal = getFieldValueByName(varItem, obj);
+        									inputVar.add(codeVal);
+        								}
+        								Method func = bean.getClass().getDeclaredMethod(dictServiceFunc, List.class);
+        								Object serviceRes = func.invoke(bean, inputVar);
+        								jsonObject.put(field.getName()+DICT_SUFFIX_TXT, serviceRes);
+        							}
+        						} else {
+        							// use data dictionary, secondary
+        							String dictGroupCode = an.dictGroupCode();
+        							String codeVal = getFieldValueByName(field.getName(), obj);
+        							String text = enhancerService.simpleSelect(dictGroupCode, codeVal);
+        							jsonObject.put(field.getName()+DICT_SUFFIX_TXT, text);
+        							
+        							// remove duplicate select options
+        							if (keyDict.add(field.getName()+DICT_SUFFIX_SELOP)) {
+        								List<DictVo> selOpt = enhancerService.selectionSel(dictGroupCode);
+        								dictRes.put(field.getName()+DICT_SUFFIX_SELOP, selOpt);
+        							}
 //        						jsonObject.add(field.getName()+DICT_SUFFIX_TXT, new Gson().toJsonTree(text));
 //        						jsonObject.add(field.getName()+DICT_SUFFIX_SELOP, new Gson().toJsonTree(selOpt));
+        						}
         					}        					
         				}
         				
@@ -119,16 +150,14 @@ public class WxDictAspect {
         			// list size is nil
         			long end=System.currentTimeMillis();
                     logger.debug("字典数据处理失败，耗时"+(end-start)+"ms");
-                    res.setCode(500);
-                    res.setMessage("list size is nil");
+                    res.setMessage("数据为空");
         		}
         		
         	} else {
         		// not 200 status code
         		long end=System.currentTimeMillis();
         		logger.debug("字典数据处理失败，耗时"+(end-start)+"ms");
-        		res.setCode(500);
-                res.setMessage("not 200 status code");
+                res.setMessage("数据查询异常，状态码不健康");
         	}
         	long end=System.currentTimeMillis();
             logger.debug("字典数据处理耗时"+(end-start)+"ms");
@@ -178,4 +207,9 @@ public class WxDictAspect {
             return null;
         }
     }
+
+	@Override
+	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+		this.context = applicationContext;
+	}
 }

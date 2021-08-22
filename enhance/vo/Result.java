@@ -1,6 +1,5 @@
 package com.jeecg.devicemanage.wx.enhance.vo;
 
-import java.io.Serializable;
 import java.util.List;
 
 import com.alibaba.fastjson.JSONObject;
@@ -14,8 +13,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
  * @date  2019年1月19日
  */
 public class Result<T> {
-
-	private static final long serialVersionUID = 1L;
 
 	/**
 	 * 成功标志

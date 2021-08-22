@@ -51,7 +51,11 @@ public interface EnhancerService {
 	// ===================================== Dict Enhancer End =====================================
 	
 	/**
-	 * convert List<Object> to JSONArray and buildin xx_dictTxt
+	 * test customized service Example
+	 * @param str
+	 * @return
 	 */
+	String useService(List<String> str);
+	
 	
 }

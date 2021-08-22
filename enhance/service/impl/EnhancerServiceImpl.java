@@ -80,4 +80,14 @@ public class EnhancerServiceImpl implements EnhancerService {
 		return null;
 	}
 
+	@Override
+	public String useService(List<String> str) {
+		StringBuffer sb = new StringBuffer("开始：");
+		str.forEach(item->{
+			sb.append(item).append("#");
+		});
+		sb.append("结束");
+		return sb.toString();
+	}
+
 }
